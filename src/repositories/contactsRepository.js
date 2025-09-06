@@ -24,7 +24,7 @@ export async function getContactsBatch(campaign_id, limit, offset) {
 export async function markContactsForwarded(client, ids) {
   if (!ids || ids.length === 0) return;
   const placeholders = ids.map((_, i) => `$${i + 1}`).join(",");
-  const sql = `UPDATE sms_contact SET forwarded_to_zenvia = true WHERE id IN (${placeholders})`;
+  const sql = `UPDATE sms_contact SET forwarded_to_provider = true WHERE id IN (${placeholders})`;
   return client.query(sql, ids);
 }
 

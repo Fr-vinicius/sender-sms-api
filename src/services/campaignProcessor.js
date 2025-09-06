@@ -190,19 +190,19 @@ export async function processCampaignJob(job) {
           try {
             const msg = buildMessage(campaign.message_template, it.shortUrl);
             const result = await sendSms(it.phone, msg);
-            const statusDesc = (result && result.statusDescription) || "Error";
-            const isOk = /^ok|sent|accepted$/i.test(statusDesc);
+            const status = result?.status || "error";
+            const isOk = status === "accepted";
 
             statusUpdates.push({
               contact_id: it.contact_id,
               isOk,
-              partId: result?.partId || null,
+              messageId: result?.messageId || null,
             });
           } catch (e) {
             statusUpdates.push({
               contact_id: it.contact_id,
               isOk: false,
-              partId: null,
+              messageId: null,
             });
           } finally {
             sem.release();
@@ -222,8 +222,8 @@ export async function processCampaignJob(job) {
             client2,
             [upd.contact_id],
             true,
-            "Sent",
-            upd.partId
+            "Accepted",
+            upd.messageId
           );
         }
         for (const upd of failUpdates) {
@@ -232,7 +232,7 @@ export async function processCampaignJob(job) {
             [upd.contact_id],
             false,
             "Not Sent",
-            upd.partId
+            upd.messageId
           );
         }
 

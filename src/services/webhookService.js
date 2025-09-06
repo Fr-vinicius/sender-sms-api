@@ -2,7 +2,6 @@ import fetch from "node-fetch";
 import { WEBHOOK_URL } from "../config/env.js";
 
 export async function pushRedisWebhook(payload) {
-  // payload: array of { id, store_id, link, slug }
   try {
     const res = await fetch(WEBHOOK_URL, {
       method: "POST",

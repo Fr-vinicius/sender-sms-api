@@ -1,4 +1,3 @@
-// src/queue/bullmq.js
 import pkg from "bullmq";
 import IORedis from "ioredis";
 

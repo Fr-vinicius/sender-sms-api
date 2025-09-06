@@ -1,46 +1,44 @@
 import fetch from "node-fetch";
 import {
-  ZENVIA_URL,
-  ZENVIA_AUTH,
   CALLBACK_URL,
   SMS_RETRIES,
+  SINCH_AUTH,
+  SINCH_URL,
+  SINCH_NUMBER,
 } from "../config/env.js";
 import { withRetries } from "../utils/withRetries.js";
 
 export async function sendSms(phone, msg) {
   const payload = {
-    sendSmsRequest: {
-      from: "",
-      to: phone,
-      msg,
-      callbackOption: "FINAL",
-      callbackUrl: CALLBACK_URL,
-    },
+    from: SINCH_NUMBER,
+    to: [phone],
+    body: msg,
+    type: "mt_text",
+    delivery_report: "per_recipient_final",
+    callback_url: CALLBACK_URL,
   };
 
-  console.log("[sendSms] Payload preparado:", JSON.stringify(payload, null, 2));
+  console.log("[sendSms] Payload:", JSON.stringify(payload, null, 2));
 
   const fn = async () => {
     let res;
     try {
-      res = await fetch(ZENVIA_URL, {
+      res = await fetch(SINCH_URL, {
         method: "POST",
         headers: {
-          Authorization: ZENVIA_AUTH,
+          Authorization: `Bearer ${SINCH_AUTH}`,
           "Content-Type": "application/json",
-          Accept: "application/json",
-          "Cache-Control": "no-cache",
         },
         body: JSON.stringify(payload),
       });
     } catch (err) {
       throw new Error(
-        `[FetchError] Falha ao enviar para Zenvia: ${err.message}`
+        `[FetchError] Falha ao enviar para Sinch: ${err.message}`
       );
     }
 
     const text = await res.text();
-    console.log(`[Zenvia Raw] ${phone} (status ${res.status}):`, text);
+    console.log(`[Sinch Raw] ${phone} (status ${res.status}):`, text);
 
     if (!res.ok) {
       throw new Error(`[HTTPError] ${res.status}: ${text}`);
@@ -50,23 +48,19 @@ export async function sendSms(phone, msg) {
     try {
       json = JSON.parse(text);
     } catch {
-      throw new Error(`[ParseError] Resposta não-JSON da Zenvia: ${text}`);
+      throw new Error(`[ParseError] Resposta não-JSON da Sinch: ${text}`);
     }
 
-    const send = json?.sendSmsResponse || json?.sendSmsResponses?.[0];
-    if (!send) {
-      throw new Error(
-        `[InvalidResponse] Resposta inesperada da Zenvia: ${text}`
-      );
+    if (!json.id) {
+      throw new Error(`[InvalidResponse] Sem ID retornado: ${text}`);
     }
 
-    console.log("[sendSms] Parsed JSON:", JSON.stringify(send, null, 2));
+    console.log("[sendSms] Parsed JSON:", JSON.stringify(json, null, 2));
 
-    const statusDesc = send.statusDescription || "";
-    const partId = send.parts?.[0]?.partId ?? null;
-    console.log(`[Zenvia] ${phone} status: ${statusDesc}, partId: ${partId}`);
-
-    return { statusDescription: statusDesc, partId };
+    return {
+      messageId: json.id,
+      statusDescription: "accepted",
+    };
   };
 
   try {

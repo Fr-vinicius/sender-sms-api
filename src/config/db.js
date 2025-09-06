@@ -14,7 +14,6 @@ export const pool = new Pool({
   connectionTimeoutMillis: 10000,
 });
 
-// log opcional para debug
 pool.on("connect", () => {
   console.log("✅ [DB] Nova conexão estabelecida");
 });

@@ -1,4 +1,3 @@
-// src/workers/campaignWorker.js
 import { Worker } from "bullmq";
 import { connection, QUEUE_NAME } from "../queue/bullmq.js";
 import { processCampaignJob } from "../services/campaignProcessor.js";
@@ -28,7 +27,7 @@ const worker = new Worker(
       );
       console.error("Stack:", err?.stack);
       console.error("Payload problemático:", job.data);
-      throw err; // marca como failed
+      throw err;
     }
   },
   { connection, concurrency }

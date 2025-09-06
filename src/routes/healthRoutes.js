@@ -1,5 +1,10 @@
 import fetch from "node-fetch";
-import { ZENVIA_AUTH } from "../config/env.js";
+import {
+  HEALTH_CHECK_TO,
+  SINCH_AUTH,
+  SINCH_NUMBER,
+  SINCH_URL,
+} from "../config/env.js";
 
 let lastSmsSent = 0;
 const SMS_INTERVAL_MS = 60 * 1000;
@@ -12,28 +17,35 @@ export default async function (fastify) {
       lastSmsSent = now;
 
       try {
-        const res = await fetch(
-          "https://api-rest.zenvia.com/services/send-sms",
-          {
-            method: "POST",
-            headers: {
-              Authorization: ZENVIA_AUTH,
-              "Content-Type": "application/json",
-              Accept: "application/json",
-              "Cache-Control": "no-cache",
-            },
-            body: JSON.stringify({
-              sendSmsRequest: {
-                from: "",
-                to: "5512991725478",
-                msg: "Health check disparado",
-              },
-            }),
-          }
-        );
+        const res = await fetch(SINCH_URL, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${SINCH_AUTH}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: SINCH_NUMBER,
+            to: [HEALTH_CHECK_TO],
+            body: "health ckeck ok",
+            type: "mt_text",
+            delivery_report: "none",
+          }),
+        });
 
-        const json = await res.json();
-        console.log("Resposta Zenvia:", json);
+        const text = await res.text();
+        console.log("Resposta sinch (raw):", res.status, text);
+
+        if (!res.ok) {
+          throw new Error(`[SinchError] ${res.status}: ${text}`);
+        }
+
+        let json;
+        try {
+          json = JSON.parse(text);
+          console.log("Resposta sinch (JSON):", json);
+        } catch {
+          console.error("⚠️ Resposta não era JSON válido:", text);
+        }
       } catch (err) {
         console.error("Erro ao enviar SMS:", err.message);
       }
